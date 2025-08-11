@@ -100,11 +100,12 @@ int main(){
     image img;
     img.screenshot();
 
+
     image_info bitmap = img.screenshot();
     byte* loaded = stbi_load_from_memory(bitmap.first, bitmap.second, &screenX, &screenY, &channels, 0);
     stbi_write_png("out.png", screenX, screenY, channels, loaded, screenX * channels);
     stbi_image_free(loaded);
     
-    MessageBoxA(NULL, "saved 10 images", "info", MB_ICONINFORMATION | MB_OK);
+    MessageBoxA(NULL, "saved image", "info", MB_ICONINFORMATION | MB_OK);
     return 0;
 }
