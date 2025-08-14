@@ -9,10 +9,9 @@
 using std::vector;
 using std::fstream;
 
-
 void image::savepng(const image_info bitmap){
-    int screenX = 1920;
-    int screenY = 1080;
+    int screenX = GetDeviceCaps(GetDC(NULL), HORZRES);
+    int screenY = GetDeviceCaps(GetDC(NULL), VERTRES);
     int channels = 1;
     
     byte* loaded = stbi_load_from_memory(bitmap.first, bitmap.second, &screenX, &screenY, &channels, 0);
@@ -30,18 +29,13 @@ image_info image::screenshot() {
     int screenY = GetDeviceCaps(screenDC, VERTRES) * 1.5;
             
     HBITMAP targetBMP = CreateCompatibleBitmap(screenDC, screenX, screenY);
-    HBITMAP outputBMP = CreateCompatibleBitmap(screenDC, 1920, 1080);
     SelectObject(dcMem, targetBMP);
-    SelectObject(outDC, outputBMP);
 
     if(!BitBlt(dcMem, 0,0, screenX, screenY, screenDC, 0,0, SRCCOPY)){
         MessageBoxA(NULL, "Failed", "info", MB_ICONERROR | MB_OK);
     }
-            
-    SetStretchBltMode(outDC, HALFTONE);
-    StretchBlt(outDC, 0, 0, 1920, 1080, dcMem, 0, 0, screenX, screenY, SRCCOPY);
 
-    GetObject(outputBMP, sizeof(BITMAP), &bmp);
+    GetObject(targetBMP, sizeof(BITMAP), &bmp);
         
     BITMAPFILEHEADER   bmfHeader;
     BITMAPINFOHEADER   bi;
@@ -62,7 +56,7 @@ image_info image::screenshot() {
     if(!buffer.size()){
         buffer.resize(dwBmpSize);
     }
-    GetDIBits(outDC, outputBMP, 0, (UINT)bmp.bmHeight, (LPVOID)buffer.data(), (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+    GetDIBits(dcMem, targetBMP, 0, (UINT)bmp.bmHeight, (LPVOID)buffer.data(), (BITMAPINFO*)&bi, DIB_RGB_COLORS);
 
     bmfHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
     bmfHeader.bfSize = dwBmpSize + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
@@ -72,8 +66,8 @@ image_info image::screenshot() {
         output.resize(bmfHeader.bfSize);
     }
 
-    memcpy_s( (void*)output.data(), sizeof(BITMAPFILEHEADER), (void*)&bmfHeader, sizeof(BITMAPFILEHEADER) );
-    memcpy_s( (void*)&output[sizeof(BITMAPFILEHEADER)], sizeof(BITMAPINFOHEADER), (void*)&bi, sizeof(BITMAPINFOHEADER) );
-    memcpy_s( (void*)&output[sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER)], buffer.capacity(), (void*)buffer.data(), buffer.capacity() );
+    memcpy_s((void*)output.data(), sizeof(BITMAPFILEHEADER), (void*)&bmfHeader, sizeof(BITMAPFILEHEADER));
+    memcpy_s((void*)&output[sizeof(BITMAPFILEHEADER)], sizeof(BITMAPINFOHEADER), (void*)&bi, sizeof(BITMAPINFOHEADER));
+    memcpy_s((void*)&output[sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER)], buffer.capacity(), (void*)buffer.data(), buffer.capacity());
     return image_info(output.data(), output.capacity());
 }
